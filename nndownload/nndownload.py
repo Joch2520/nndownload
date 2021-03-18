@@ -1389,7 +1389,6 @@ def collect_parameters(session, template_params, params, is_html5):
     """Collect video parameters to make them available for an output filename template."""
 
     if params.get("video"):
-        #print(params)
         template_params["id"] = params["video"]["id"]
         template_params["title"] = params["video"]["title"]
         template_params["uploader"] = params["owner"]["nickname"].rstrip(" さん") if params.get("owner") else None
@@ -1401,7 +1400,7 @@ def collect_parameters(session, template_params, params, is_html5):
         template_params["duration"] = params["video"]["duration"]
         template_params["view_count"] = int(params["video"]["count"]["view"])
         template_params["mylist_count"] = int(params["video"]["count"]["mylist"])
-        #template_params["comment_count"] = int(params["thread"]["commentCount"])
+        template_params["comment_count"] = int(params["video"]["count"]["comment"])
 
         tags = []
         for tag in params["tag"]["items"]:
