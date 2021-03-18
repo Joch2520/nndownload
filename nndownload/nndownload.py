@@ -1156,9 +1156,9 @@ def perform_heartbeat(session, heartbeat_url, response):
 def determine_quality(template_params, params):
     """Determine the quality parameter for all videos."""
 
-    if params.get("video"):
-        if params["video"].get("dmcInfo"):
-            if params["video"]["dmcInfo"]["quality"]["videos"][0]["id"] == template_params["video_quality"] and params["video"]["dmcInfo"]["quality"]["audios"][0]["id"] == template_params["audio_quality"]:
+    if params.get("media"):
+        if params["media"]["delivery"]["movie"].get("videos"):
+            if params["media"]["delivery"]["movie"]["videos"][0]["id"] == template_params["video_quality"] and params["media"]["delivery"]["movie"]["audios"][0]["id"] == template_params["audio_quality"]:
                 template_params["quality"] = "auto"
             else:
                 template_params["quality"] = "low"
@@ -1217,26 +1217,26 @@ def perform_api_request(session, document):
         template_params = collect_parameters(session, template_params, params, is_html5=True)
 
         # Perform request to Dwango Media Cluster (DMC)
-        if params["video"].get("dmcInfo"):
-            api_url = params["video"]["dmcInfo"]["session_api"]["urls"][0]["url"] + "?suppress_response_codes=true&_format=xml"
-            recipe_id = params["video"]["dmcInfo"]["session_api"]["recipe_id"]
-            content_id = params["video"]["dmcInfo"]["session_api"]["content_id"]
-            protocol = params["video"]["dmcInfo"]["session_api"]["protocols"][0]
+        if params["media"]["delivery"]["movie"].get("session"):
+            api_url = params["media"]["delivery"]["movie"]["session"]["urls"][0]["url"] + "?suppress_response_codes=true&_format=xml"
+            recipe_id = params["media"]["delivery"]["movie"]["session"]["recipeId"]
+            content_id = params["media"]["delivery"]["movie"]["session"]["contentId"]
+            protocol = params["media"]["delivery"]["movie"]["session"]["protocols"][0]
             file_extension = template_params["ext"]
-            priority = params["video"]["dmcInfo"]["session_api"]["priority"]
+            priority = params["media"]["delivery"]["movie"]["session"]["priority"]
 
-            video_sources = select_dmc_quality(template_params, "video_quality", params["video"]["dmcInfo"]["session_api"]["videos"], cmdl_opts.video_quality)
-            audio_sources = select_dmc_quality(template_params, "audio_quality", params["video"]["dmcInfo"]["session_api"]["audios"], cmdl_opts.audio_quality)
+            video_sources = select_dmc_quality(template_params, "video_quality", params["media"]["delivery"]["movie"]["session"]["videos"], cmdl_opts.video_quality)
+            audio_sources = select_dmc_quality(template_params, "audio_quality", params["media"]["delivery"]["movie"]["session"]["audios"], cmdl_opts.audio_quality)
             determine_quality(template_params, params)
             if template_params["quality"] != "auto" and cmdl_opts.force_high_quality:
                 raise FormatNotAvailableException("High quality source is not available")
 
-            heartbeat_lifetime = params["video"]["dmcInfo"]["session_api"]["heartbeat_lifetime"]
-            token = params["video"]["dmcInfo"]["session_api"]["token"]
-            signature = params["video"]["dmcInfo"]["session_api"]["signature"]
-            auth_type = params["video"]["dmcInfo"]["session_api"]["auth_types"]["http"]
-            service_user_id = params["video"]["dmcInfo"]["session_api"]["service_user_id"]
-            player_id = params["video"]["dmcInfo"]["session_api"]["player_id"]
+            heartbeat_lifetime = params["media"]["delivery"]["movie"]["session"]["heartbeatLifetime"]
+            token = params["media"]["delivery"]["movie"]["session"]["token"]
+            signature = params["media"]["delivery"]["movie"]["session"]["signature"]
+            auth_type = params["media"]["delivery"]["movie"]["session"]["authTypes"]["http"]
+            service_user_id = params["media"]["delivery"]["movie"]["session"]["serviceUserId"]
+            player_id = params["media"]["delivery"]["movie"]["session"]["playerId"]
 
             # Build initial heartbeat request
             post = """
@@ -1331,7 +1331,7 @@ def perform_api_request(session, document):
             # Collect response for heartbeat
             session_id = response.getElementsByTagName("id")[0].firstChild.nodeValue
             response = response.getElementsByTagName("session")[0]
-            heartbeat_url = params["video"]["dmcInfo"]["session_api"]["urls"][0]["url"] + "/" + session_id + "?_format=xml&_method=PUT"
+            heartbeat_url = params["media"]["delivery"]["movie"]["session"]["urls"][0]["url"] + "/" + session_id + "?_format=xml&_method=PUT"
             perform_heartbeat(session, heartbeat_url, response)
 
         # Legacy URL for videos uploaded pre-HTML5 player (~2016-10-27)
@@ -1389,21 +1389,22 @@ def collect_parameters(session, template_params, params, is_html5):
     """Collect video parameters to make them available for an output filename template."""
 
     if params.get("video"):
+        #print(params)
         template_params["id"] = params["video"]["id"]
         template_params["title"] = params["video"]["title"]
         template_params["uploader"] = params["owner"]["nickname"].rstrip(" さん") if params.get("owner") else None
         template_params["uploader_id"] = int(params["owner"]["id"]) if params.get("owner") else None
         template_params["description"] = params["video"]["description"]
-        template_params["thumbnail_url"] = params["video"]["thumbnailURL"]
-        template_params["thread_id"] = int(params["thread"]["ids"]["default"])
-        template_params["published"] = params["video"]["postedDateTime"]
+        template_params["thumbnail_url"] = params["video"]["thumbnail"]["largeUrl"]
+        #template_params["thread_id"] = int(params["thread"]["ids"]["default"])
+        template_params["published"] = params["video"]["registeredAt"]
         template_params["duration"] = params["video"]["duration"]
-        template_params["view_count"] = int(params["video"]["viewCount"])
-        template_params["mylist_count"] = int(params["video"]["mylistCount"])
-        template_params["comment_count"] = int(params["thread"]["commentCount"])
+        template_params["view_count"] = int(params["video"]["count"]["view"])
+        template_params["mylist_count"] = int(params["video"]["count"]["mylist"])
+        #template_params["comment_count"] = int(params["thread"]["commentCount"])
 
         tags = []
-        for tag in params["tags"]:
+        for tag in params["tag"]["items"]:
             tags.append(tag["name"])
         template_params["tags"] = str(tags)
 
